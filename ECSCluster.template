@@ -80,18 +80,13 @@
       "Type": "Number",
       "Description": "Desired Capacity of the ECS Auto Scaling Group",
       "Default": "3"
-    },
-    "EcsCluster" : {
-      "Type" : "String",
-      "Description" : "ECS Cluster Name",
-      "Default" : "default"
     }
   },
   "Resources": {
     "Cluster": {
       "Type" : "AWS::ECS::Cluster",
       "Properties" : {
-        "ClusterName" : {"Ref": "EcsCluster"}
+        "ClusterName" : {"Ref": "AWS::StackName"}
       }
     },
     "ALBSecurityGroup": {
@@ -337,6 +332,94 @@
             "PropagateAtLaunch": "true"
           }
         ]
+      }
+    },
+    "ScaleUpPolicy" : {
+      "Type" : "AWS::AutoScaling::ScalingPolicy",
+      "Properties" : {
+        "AutoScalingGroupName" : { "Ref" : "EcsInstanceAsg" },
+        "PolicyType" : "StepScaling",
+        "AdjustmentType" : "PercentChangeInCapacity",
+        "MetricAggregationType" : "Average",
+        "EstimatedInstanceWarmup" : "60",
+        "StepAdjustments": [
+          {
+            "MetricIntervalLowerBound": "0",
+            "MetricIntervalUpperBound" : "10",
+            "ScalingAdjustment": "0"
+          },
+          {
+            "MetricIntervalLowerBound": "10",
+            "MetricIntervalUpperBound" : "20",
+            "ScalingAdjustment": "10"
+          },
+          {
+            "MetricIntervalLowerBound": "20",
+            "ScalingAdjustment": "30"
+          }
+        ]
+      }
+    },
+    "ScaleDownPolicy" : {
+      "Type" : "AWS::AutoScaling::ScalingPolicy",
+      "Properties" : {
+        "AutoScalingGroupName" : { "Ref" : "EcsInstanceAsg" },
+        "PolicyType" : "StepScaling",
+        "AdjustmentType" : "PercentChangeInCapacity",
+        "MetricAggregationType" : "Average",
+        "EstimatedInstanceWarmup" : "60",
+        "StepAdjustments": [
+          {
+            "MetricIntervalLowerBound": "-10",
+            "MetricIntervalUpperBound" : "0",
+            "ScalingAdjustment": "0"
+          },
+          {
+            "MetricIntervalLowerBound": "-20",
+            "MetricIntervalUpperBound" : "-10",
+            "ScalingAdjustment": "-10"
+          },
+          {
+            "MetricIntervalUpperBound": "-20",
+            "ScalingAdjustment": "-30"
+          }
+        ]
+      }
+    },
+    "CPUAlarmHigh" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Properties" : {
+        "AlarmDescription" : "CPU alarm for ECS cluster high usage",
+        "AlarmActions" : [ { "Ref" : "ScaleUpPolicy" } ],
+        "MetricName" : "CPUUtilization",
+        "Namespace" : "AWS/ECS",
+        "Statistic" : "Average",
+        "Period" : "60",
+        "EvaluationPeriods" : "3",
+        "Threshold" : "60",
+        "ComparisonOperator" : "GreaterThanThreshold",
+        "Dimensions" : [ {
+          "Name" : "ClusterName",
+          "Value" : { "Ref" : "AWS::StackName" }
+        } ]
+      }
+    },
+    "CPUAlarmLow" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Properties" : {
+        "AlarmDescription" : "CPU alarm for ECS cluster low usage",
+        "AlarmActions" : [ { "Ref" : "ScaleDownPolicy" } ],
+        "MetricName" : "CPUUtilization",
+        "Namespace" : "AWS/ECS",
+        "Statistic" : "Average",
+        "Period" : "60",
+        "EvaluationPeriods" : "3",
+        "Threshold" : "40",
+        "ComparisonOperator" : "LessThanThreshold",
+        "Dimensions" : [ {
+          "Name" : "ClusterName",
+          "Value" : { "Ref" : "AWS::StackName" }
+        } ]
       }
     }
   },
