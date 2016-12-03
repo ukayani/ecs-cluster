@@ -334,7 +334,7 @@
         ]
       }
     },
-    "ScaleUpPolicy" : {
+    "CPUScaleUpPolicy" : {
       "Type" : "AWS::AutoScaling::ScalingPolicy",
       "Properties" : {
         "AutoScalingGroupName" : { "Ref" : "EcsInstanceAsg" },
@@ -360,7 +360,7 @@
         ]
       }
     },
-    "ScaleDownPolicy" : {
+    "CPUScaleDownPolicy" : {
       "Type" : "AWS::AutoScaling::ScalingPolicy",
       "Properties" : {
         "AutoScalingGroupName" : { "Ref" : "EcsInstanceAsg" },
@@ -386,12 +386,12 @@
         ]
       }
     },
-    "CPUAlarmHigh" : {
+    "CPUResAlarmHigh" : {
       "Type" : "AWS::CloudWatch::Alarm",
       "Properties" : {
         "AlarmDescription" : "CPU alarm for ECS cluster high usage",
-        "AlarmActions" : [ { "Ref" : "ScaleUpPolicy" } ],
-        "MetricName" : "CPUUtilization",
+        "AlarmActions" : [ { "Ref" : "CPUScaleUpPolicy" } ],
+        "MetricName" : "CPUReservation",
         "Namespace" : "AWS/ECS",
         "Statistic" : "Average",
         "Period" : "60",
@@ -404,12 +404,12 @@
         } ]
       }
     },
-    "CPUAlarmLow" : {
+    "CPUResAlarmLow" : {
       "Type" : "AWS::CloudWatch::Alarm",
       "Properties" : {
         "AlarmDescription" : "CPU alarm for ECS cluster low usage",
-        "AlarmActions" : [ { "Ref" : "ScaleDownPolicy" } ],
-        "MetricName" : "CPUUtilization",
+        "AlarmActions" : [ { "Ref" : "CPUScaleDownPolicy" } ],
+        "MetricName" : "CPUReservation",
         "Namespace" : "AWS/ECS",
         "Statistic" : "Average",
         "Period" : "60",
