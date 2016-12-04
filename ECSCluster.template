@@ -389,13 +389,31 @@
     "CPUResAlarmHigh" : {
       "Type" : "AWS::CloudWatch::Alarm",
       "Properties" : {
-        "AlarmDescription" : "CPU alarm for ECS cluster high usage",
+        "AlarmDescription" : "CPU alarm for ECS cluster high cpu reserve",
         "AlarmActions" : [ { "Ref" : "CPUScaleUpPolicy" } ],
         "MetricName" : "CPUReservation",
         "Namespace" : "AWS/ECS",
         "Statistic" : "Average",
         "Period" : "60",
-        "EvaluationPeriods" : "3",
+        "EvaluationPeriods" : "5",
+        "Threshold" : "60",
+        "ComparisonOperator" : "GreaterThanThreshold",
+        "Dimensions" : [ {
+          "Name" : "ClusterName",
+          "Value" : { "Ref" : "AWS::StackName" }
+        } ]
+      }
+    },
+    "CPUUtilAlarmHigh" : {
+      "Type" : "AWS::CloudWatch::Alarm",
+      "Properties" : {
+        "AlarmDescription" : "CPU alarm for ECS cluster high usage",
+        "AlarmActions" : [ { "Ref" : "CPUScaleUpPolicy" } ],
+        "MetricName" : "CPUUtilization",
+        "Namespace" : "AWS/ECS",
+        "Statistic" : "Average",
+        "Period" : "60",
+        "EvaluationPeriods" : "2",
         "Threshold" : "60",
         "ComparisonOperator" : "GreaterThanThreshold",
         "Dimensions" : [ {
@@ -407,13 +425,13 @@
     "CPUResAlarmLow" : {
       "Type" : "AWS::CloudWatch::Alarm",
       "Properties" : {
-        "AlarmDescription" : "CPU alarm for ECS cluster low usage",
+        "AlarmDescription" : "CPU alarm for ECS cluster low cpu reserve",
         "AlarmActions" : [ { "Ref" : "CPUScaleDownPolicy" } ],
         "MetricName" : "CPUReservation",
         "Namespace" : "AWS/ECS",
         "Statistic" : "Average",
         "Period" : "60",
-        "EvaluationPeriods" : "3",
+        "EvaluationPeriods" : "5",
         "Threshold" : "40",
         "ComparisonOperator" : "LessThanThreshold",
         "Dimensions" : [ {
