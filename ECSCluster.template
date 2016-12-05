@@ -318,17 +318,7 @@
         "Tags": [
           {
             "Key": "Name",
-            "Value": {
-              "Fn::Join": [
-                "",
-                [
-                  "ECS Instance - ",
-                  {
-                    "Ref": "AWS::StackName"
-                  }
-                ]
-              ]
-            },
+            "Value": { "Fn::Sub": "ECS Instance - ${AWS::StackName}"},
             "PropagateAtLaunch": "true"
           }
         ]
