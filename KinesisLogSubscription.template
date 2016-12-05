@@ -98,16 +98,6 @@
         "FilterPattern" : "",
         "DestinationArn" : { "Ref" :  "KinesisStreamArn"}
       }
-    },
-    "SubscriptionFilter6" : {
-      "Type" : "AWS::Logs::SubscriptionFilter",
-      "DependsOn": ["CWLtoKinesisPolicy"],
-      "Properties" : {
-        "RoleArn" : { "Fn::GetAtt" : [ "CWLtoKinesisRole", "Arn" ] },
-        "LogGroupName" : "/var/log/ecs/audit.log",
-        "FilterPattern" : "",
-        "DestinationArn" : { "Ref" :  "KinesisStreamArn"}
-      }
     }
   }
 }
