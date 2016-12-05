@@ -442,9 +442,30 @@
     }
   },
   "Outputs" : {
+    "VpcId" : {
+      "Description" : "VPC ID",
+      "Value" : { "Ref" : "VpcId" },
+      "Export" : {
+        "Name" : {"Fn::Sub": "${AWS::StackName}-VpcId" }
+      }
+    },
     "ALBSecurityGroup" : {
       "Description": "The ID of the ALB Security group created",
-      "Value" : { "Fn::GetAtt" : [ "ALBSecurityGroup", "GroupId" ]}
+      "Value" : { "Fn::GetAtt" : [ "ALBSecurityGroup", "GroupId" ]},
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-ALB-SecurityGroupID"
+        }
+      }
+    },
+    "ClusterName" : {
+      "Description": "The name of the ECS Cluster created",
+      "Value" : { "Ref": "Cluster"},
+      "Export" : {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-ClusterName"
+        }
+      }
     }
   }
 }
