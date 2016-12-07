@@ -385,7 +385,7 @@
         "Namespace" : "AWS/ECS",
         "Statistic" : "Average",
         "Period" : "60",
-        "EvaluationPeriods" : "5",
+        "EvaluationPeriods" : "3",
         "Threshold" : "60",
         "ComparisonOperator" : "GreaterThanThreshold",
         "Dimensions" : [ {
@@ -421,7 +421,7 @@
         "Namespace" : "AWS/ECS",
         "Statistic" : "Average",
         "Period" : "60",
-        "EvaluationPeriods" : "5",
+        "EvaluationPeriods" : "10",
         "Threshold" : "40",
         "ComparisonOperator" : "LessThanThreshold",
         "Dimensions" : [ {
