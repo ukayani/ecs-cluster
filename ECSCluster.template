@@ -376,12 +376,12 @@
         ]
       }
     },
-    "CPUResAlarmHigh" : {
+    "MemResAlarmHigh" : {
       "Type" : "AWS::CloudWatch::Alarm",
       "Properties" : {
-        "AlarmDescription" : "CPU alarm for ECS cluster high cpu reserve",
+        "AlarmDescription" : "Memory alarm for ECS cluster high memory reserve",
         "AlarmActions" : [ { "Ref" : "CPUScaleUpPolicy" } ],
-        "MetricName" : "CPUReservation",
+        "MetricName" : "MemoryReservation",
         "Namespace" : "AWS/ECS",
         "Statistic" : "Average",
         "Period" : "60",
@@ -394,12 +394,12 @@
         } ]
       }
     },
-    "CPUUtilAlarmHigh" : {
+    "MemUtilAlarmHigh" : {
       "Type" : "AWS::CloudWatch::Alarm",
       "Properties" : {
-        "AlarmDescription" : "CPU alarm for ECS cluster high usage",
+        "AlarmDescription" : "Memory alarm for ECS cluster high memory usage",
         "AlarmActions" : [ { "Ref" : "CPUScaleUpPolicy" } ],
-        "MetricName" : "CPUUtilization",
+        "MetricName" : "MemoryUtilization",
         "Namespace" : "AWS/ECS",
         "Statistic" : "Average",
         "Period" : "60",
@@ -412,12 +412,12 @@
         } ]
       }
     },
-    "CPUResAlarmLow" : {
+    "MemResAlarmLow" : {
       "Type" : "AWS::CloudWatch::Alarm",
       "Properties" : {
-        "AlarmDescription" : "CPU alarm for ECS cluster low cpu reserve",
+        "AlarmDescription" : "Memory alarm for ECS cluster low memory reserve",
         "AlarmActions" : [ { "Ref" : "CPUScaleDownPolicy" } ],
-        "MetricName" : "CPUReservation",
+        "MetricName" : "MemoryReservation",
         "Namespace" : "AWS/ECS",
         "Statistic" : "Average",
         "Period" : "60",
