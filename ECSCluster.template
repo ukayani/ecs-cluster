@@ -324,7 +324,7 @@
         ]
       }
     },
-    "CPUScaleUpPolicy" : {
+    "MemScaleUpPolicy" : {
       "Type" : "AWS::AutoScaling::ScalingPolicy",
       "Properties" : {
         "AutoScalingGroupName" : { "Ref" : "EcsInstanceAsg" },
@@ -350,14 +350,14 @@
         ]
       }
     },
-    "CPUScaleDownPolicy" : {
+    "MemScaleDownPolicy" : {
       "Type" : "AWS::AutoScaling::ScalingPolicy",
       "Properties" : {
         "AutoScalingGroupName" : { "Ref" : "EcsInstanceAsg" },
         "PolicyType" : "StepScaling",
         "AdjustmentType" : "PercentChangeInCapacity",
         "MetricAggregationType" : "Average",
-        "EstimatedInstanceWarmup" : "60",
+        "EstimatedInstanceWarmup" : "120",
         "StepAdjustments": [
           {
             "MetricIntervalLowerBound": "-10",
@@ -380,7 +380,7 @@
       "Type" : "AWS::CloudWatch::Alarm",
       "Properties" : {
         "AlarmDescription" : "Memory alarm for ECS cluster high memory reserve",
-        "AlarmActions" : [ { "Ref" : "CPUScaleUpPolicy" } ],
+        "AlarmActions" : [ { "Ref" : "MemScaleUpPolicy" } ],
         "MetricName" : "MemoryReservation",
         "Namespace" : "AWS/ECS",
         "Statistic" : "Average",
@@ -398,7 +398,7 @@
       "Type" : "AWS::CloudWatch::Alarm",
       "Properties" : {
         "AlarmDescription" : "Memory alarm for ECS cluster high memory usage",
-        "AlarmActions" : [ { "Ref" : "CPUScaleUpPolicy" } ],
+        "AlarmActions" : [ { "Ref" : "MemScaleUpPolicy" } ],
         "MetricName" : "MemoryUtilization",
         "Namespace" : "AWS/ECS",
         "Statistic" : "Average",
@@ -416,7 +416,7 @@
       "Type" : "AWS::CloudWatch::Alarm",
       "Properties" : {
         "AlarmDescription" : "Memory alarm for ECS cluster low memory reserve",
-        "AlarmActions" : [ { "Ref" : "CPUScaleDownPolicy" } ],
+        "AlarmActions" : [ { "Ref" : "MemScaleDownPolicy" } ],
         "MetricName" : "MemoryReservation",
         "Namespace" : "AWS/ECS",
         "Statistic" : "Average",
