@@ -127,24 +127,18 @@
         ]
       }
     },
-    "JenkinsELBSecurityGroup": {
+    "ArtifactoryELBSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
-        "GroupDescription": "Jenkins ELB Security Group",
+        "GroupDescription": "Artifactory ELB Security Group",
         "VpcId": {
           "Ref": "VpcId"
         },
         "SecurityGroupIngress": [
           {
             "IpProtocol": "tcp",
-            "FromPort": 8080,
-            "ToPort": 8080,
-            "CidrIp": "0.0.0.0/0"
-          },
-          {
-            "IpProtocol": "tcp",
-            "FromPort": 50000,
-            "ToPort": 50000,
+            "FromPort": 80,
+            "ToPort": 80,
             "CidrIp": "0.0.0.0/0"
           }
         ]
@@ -307,77 +301,6 @@
                   "Resource": [
                     "arn:aws:logs:*:*:*"
                   ]
-                }
-              ]
-            }
-          },
-          {
-            "PolicyName": "AmazonEC2ContainerServiceJenkinsPluginRole",
-            "PolicyDocument": {
-              "Statement": [
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "ecs:DescribeContainerInstances",
-                    "ecs:ListClusters",
-                    "ecs:RegisterTaskDefinition"
-                  ],
-                  "Resource": "*"
-                },
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "ecs:RunTask"
-                  ],
-                  "Resource": "*"
-                },
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "ecs:ListContainerInstances",
-                    "ecs:StopTask"
-                  ],
-                  "Resource": {
-                    "Fn::Join": [
-                      "",
-                      [
-                        "arn:aws:ecs:",
-                        {
-                          "Ref": "AWS::Region"
-                        },
-                        ":",
-                        {
-                          "Ref": "AWS::AccountId"
-                        },
-                        ":cluster/",
-                        {
-                          "Ref": "ECSCluster"
-                        }
-                      ]
-                    ]
-                  }
-                },
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "ecs:StopTask"
-                  ],
-                  "Resource": {
-                    "Fn::Join": [
-                      "",
-                      [
-                        "arn:aws:ecs:",
-                        {
-                          "Ref": "AWS::Region"
-                        },
-                        ":",
-                        {
-                          "Ref": "AWS::AccountId"
-                        },
-                        ":task/*"
-                      ]
-                    ]
-                  }
                 }
               ]
             }
@@ -666,7 +589,7 @@
         ]
       }
     },
-    "JenkinsLoadBalancer": {
+    "ArtifactoryLoadBalancer": {
       "Properties": {
         "Subnets": {
             "Ref": "ELBSubnetIds"
@@ -676,34 +599,28 @@
             "Ref": "ECSClusterSecurityGroup"
           },
           {
-            "Ref": "JenkinsELBSecurityGroup"
+            "Ref": "ArtifactoryELBSecurityGroup"
           }
         ],
         "Listeners": [
           {
-            "InstancePort": "8080",
+            "InstancePort": "8081",
             "InstanceProtocol": "HTTP",
-            "LoadBalancerPort": "8080",
+            "LoadBalancerPort": "80",
             "Protocol": "HTTP"
-          },
-          {
-            "InstancePort": "50000",
-            "InstanceProtocol": "TCP",
-            "LoadBalancerPort": "50000",
-            "Protocol": "TCP"
           }
         ],
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": "30",
-          "Target": "HTTP:8080/",
+          "Target": "HTTP:8081/",
           "Timeout": "5",
           "UnhealthyThreshold": "5"
         }
       },
       "Type": "AWS::ElasticLoadBalancing::LoadBalancer"
     },
-    "JenkinsECSService": {
+    "ArtifactoryECSService": {
       "DependsOn": [
         "EcsInstanceAsg"
       ],
@@ -714,10 +631,10 @@
         "DesiredCount": 1,
         "LoadBalancers": [
           {
-            "ContainerName": "jenkins",
-            "ContainerPort": "8080",
+            "ContainerName": "artifactory",
+            "ContainerPort": "8081",
             "LoadBalancerName": {
-              "Ref": "JenkinsLoadBalancer"
+              "Ref": "ArtifactoryLoadBalancer"
             }
           }
         ],
@@ -725,52 +642,42 @@
           "Ref": "ECSServiceRole"
         },
         "TaskDefinition": {
-          "Ref": "JenkinsTaskDefinition"
+          "Ref": "ArtifactoryTaskDefinition"
         }
       },
       "Type": "AWS::ECS::Service"
     },
-    "JenkinsTaskDefinition": {
+    "ArtifactoryTaskDefinition": {
       "Properties": {
         "ContainerDefinitions": [
           {
-            "Name": "jenkins",
-            "Image": "jenkins",
-            "Hostname": "jenkins",
+            "Name": "artifactory",
+            "Image": "jfrog-docker-reg2.bintray.io/jfrog/artifactory-pro:latest",
+            "Hostname": "artifactory",
             "Cpu": 512,
             "Memory": 2048,
             "User": "root",
-            "Environment": [
-              {
-                "Name": "JAVA_OPTS",
-                "Value": "-Djenkins.install.runSetupWizard=false"
-              }
-            ],
             "Essential": true,
             "MountPoints": [
               {
-                "ContainerPath": "/var/jenkins_home",
-                "SourceVolume": "efs-jenkins",
+                "ContainerPath": "/var/opt/jfrog/artifactory/",
+                "SourceVolume": "efs-artifactory",
                 "ReadOnly": false
               }
             ],
             "PortMappings": [
               {
-                "HostPort": 8080,
-                "ContainerPort": 8080
-              },
-              {
-                "HostPort": 50000,
-                "ContainerPort": 50000
+                "HostPort": 8081,
+                "ContainerPort": 8081
               }
             ]
           }
         ],
         "Volumes": [
           {
-            "Name": "efs-jenkins",
+            "Name": "efs-artifactory",
             "Host": {
-              "SourcePath": "/mnt/efs/jenkins"
+              "SourcePath": "/mnt/efs/artifactory"
             }
           }
         ]
@@ -788,8 +695,8 @@
         ]
       }
     },
-    "JenkinsConfigurationAlternativeJenkinsURL": {
-      "Description": "Jenkins configuration: \"Alternative Jenkins URL\"",
+    "ArtifactoryConfigurationAlternativeArtifactoryURL": {
+      "Description": "Artifactory configuration: \"Alternative Artifactory URL\"",
       "Value": {
         "Fn::Join": [
           "",
@@ -797,7 +704,7 @@
             "http://",
             {
               "Fn::GetAtt": [
-                "JenkinsLoadBalancer",
+                "ArtifactoryLoadBalancer",
                 "DNSName"
               ]
             },
