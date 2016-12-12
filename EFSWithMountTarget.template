@@ -1,0 +1,121 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Creates an EFS file system with mount targets",
+  "Parameters": {
+    "VpcId": {
+      "Type": "AWS::EC2::VPC::Id",
+      "Description": "VPC in which to create stack"
+    },
+    "SubnetIds": {
+      "Type": "List<AWS::EC2::Subnet::Id>",
+      "Description": "2 Subnets in which to create mount targets (must be in distinct AZs)"
+    }
+  },
+  "Resources": {
+    "FileSystem": {
+      "Type": "AWS::EFS::FileSystem",
+      "Properties": {
+        "FileSystemTags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Ref": "AWS::StackName"
+            }
+          }
+        ]
+      }
+    },
+    "MountTargetSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "GroupDescription": "Security group for mount target",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "2049",
+            "ToPort": "2049",
+            "SourceSecurityGroupId": {
+              "Ref": "FileSystemAccessSecurityGroup"
+            }
+          }
+        ]
+      }
+    },
+    "FileSystemAccessSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VpcId"
+        },
+        "GroupDescription": "Security group for EFS access"
+      }
+    },
+    "MountTargetA": {
+      "Type": "AWS::EFS::MountTarget",
+      "Properties": {
+        "FileSystemId": {
+          "Ref": "FileSystem"
+        },
+        "SubnetId":{"Fn::Select": ["0", {"Ref": "SubnetIds"}]},
+        "SecurityGroups": [
+          {
+            "Ref": "MountTargetSecurityGroup"
+          }
+        ]
+      }
+    },
+    "MountTargetB": {
+      "Type": "AWS::EFS::MountTarget",
+      "Properties": {
+        "FileSystemId": {
+          "Ref": "FileSystem"
+        },
+        "SubnetId": {"Fn::Select": ["1", {"Ref": "SubnetIds"}]},
+        "SecurityGroups": [
+          {
+            "Ref": "MountTargetSecurityGroup"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "VpcId": {
+      "Description": "VPC ID",
+      "Value": {
+        "Ref": "VpcId"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-VpcId"
+        }
+      }
+    },
+    "FileSystemId": {
+      "Description": "ID of the filesystem created",
+      "Value": {
+        "Ref": "FileSystem"
+      },
+      "Export": {
+        "Name": {"Fn::Sub": "${AWS::StackName}-FileSystemId"}
+      }
+    },
+    "FSAccessSecurityGroup": {
+      "Description": "The ID of the Security group which is allowed to access the file system",
+      "Value": {
+        "Fn::GetAtt": [
+          "FileSystemAccessSecurityGroup",
+          "GroupId"
+        ]
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-FSAccessSecurityGroupID"
+        }
+      }
+    }
+  }
+}
