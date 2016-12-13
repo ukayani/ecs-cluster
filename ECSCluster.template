@@ -83,7 +83,7 @@
     },
     "EFSStackName": {
       "Type": "String",
-      "Description": "The EFS stack which contains the file system needed to be mounted in the container instances",
+      "Description": "Optional - The EFS stack which contains the file system needed to be mounted in the container instances",
       "Default": ""
     }
   },
