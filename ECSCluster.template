@@ -85,6 +85,11 @@
       "Type": "String",
       "Description": "Optional - The EFS stack which contains the file system needed to be mounted in the container instances",
       "Default": ""
+    },
+    "EFSMountPath": {
+      "Type": "String",
+      "Description": "Optional - The path at which to create the volume mount for EFS",
+      "Default": "/mnt/efs"
     }
   },
   "Conditions": {
@@ -255,6 +260,11 @@
                       "echo EFS_FILE_SYSTEM_ID=",
                       {
                         "Fn::ImportValue": {"Fn::Sub": "${EFSStackName}-FileSystemId"}
+                      },
+                      " >> /etc/efs/efs.config\n",
+                      "echo EFS_MOUNT_POINT=",
+                      {
+                        "Ref": "EFSMountPath"
                       },
                       " >> /etc/efs/efs.config\n"
                     ]
@@ -429,6 +439,24 @@
       "Export" : {
         "Name": {
           "Fn::Sub": "${AWS::StackName}-ClusterName"
+        }
+      }
+    },
+    "HasEFSMount": {
+      "Description": "True if this cluster uses an EFS mount",
+      "Value": {"Fn::If": ["CreateEFSMount", "true", "false"]},
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-HasEFSMount"
+        }
+      }
+    },
+    "EFSMountPath": {
+      "Description": "The path of the EFS mount volume on the container instances",
+      "Value": {"Ref": "EFSMountPath"},
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-MountPath"
         }
       }
     }
