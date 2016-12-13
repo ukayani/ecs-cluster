@@ -80,6 +80,11 @@
       "Type": "Number",
       "Description": "Desired Capacity of the ECS Auto Scaling Group",
       "Default": "3"
+    },
+    "EFSStackName": {
+      "Type": "String",
+      "Description": "The EFS stack which contains the file system needed to be mounted in the container instances",
+      "Default": ""
     }
   },
   "Resources": {
@@ -192,7 +197,10 @@
         "KeyName": {
           "Ref": "KeyName"
         },
-        "SecurityGroups": [ {"Ref": "EcsSecurityGroup"}],
+        "SecurityGroups": [
+          {"Ref": "EcsSecurityGroup"},
+          {"Fn::ImportValue": {"Fn::Sub": "${EFSStackName}-FSAccessSecurityGroupID"}}
+        ],
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
@@ -210,11 +218,18 @@
                   "Ref": "Cluster"
                 },
                 " >> /etc/ecs/ecs.config\n",
+                "mkdir -p /etc/efs\n",
+                "echo EFS_FILE_SYSTEM_ID=",
+                {
+                  "Fn::ImportValue": {"Fn::Sub": "${EFSStackName}-FileSystemId"}
+                },
+                " >> /etc/efs/efs.config\n",
                 "--==BOUNDARY==\n",
                 "MIME-Version: 1.0\n",
                 "Content-Type: text/x-include-url; charset=\"us-ascii\"\n",
                 "\n",
                 "https://s3.amazonaws.com/cf-cloud-init-scripts/ecs/UserDataCloudWatchLogs\n",
+                "https://s3.amazonaws.com/cf-cloud-init-scripts/efs/UserDataEFS\n",
                 "--==BOUNDARY==\n"
               ]
             ]
