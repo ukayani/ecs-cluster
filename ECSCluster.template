@@ -87,6 +87,18 @@
       "Default": ""
     }
   },
+  "Conditions": {
+    "CreateEFSMount": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {"Ref": "EFSStackName"},
+            ""
+          ]
+        }
+      ]
+    }
+  },
   "Resources": {
     "Cluster": {
       "Type" : "AWS::ECS::Cluster",
@@ -197,10 +209,26 @@
         "KeyName": {
           "Ref": "KeyName"
         },
-        "SecurityGroups": [
-          {"Ref": "EcsSecurityGroup"},
-          {"Fn::ImportValue": {"Fn::Sub": "${EFSStackName}-FSAccessSecurityGroupID"}}
-        ],
+        "SecurityGroups": {
+          "Fn::If": [
+            "CreateEFSMount",
+            [
+              {
+                "Ref": "EcsSecurityGroup"
+              },
+              {
+                "Fn::ImportValue": {
+                  "Fn::Sub": "${EFSStackName}-FSAccessSecurityGroupID"
+                }
+              }
+            ],
+            [
+              {
+                "Ref": "EcsSecurityGroup"
+              }
+            ]
+          ]
+        },
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
@@ -218,18 +246,31 @@
                   "Ref": "Cluster"
                 },
                 " >> /etc/ecs/ecs.config\n",
-                "mkdir -p /etc/efs\n",
-                "echo EFS_FILE_SYSTEM_ID=",
-                {
-                  "Fn::ImportValue": {"Fn::Sub": "${EFSStackName}-FileSystemId"}
-                },
-                " >> /etc/efs/efs.config\n",
+                {"Fn::If": [
+                  "CreateEFSMount",
+                  {"Fn::Join": [
+                    "",
+                    [
+                      "mkdir -p /etc/efs\n",
+                      "echo EFS_FILE_SYSTEM_ID=",
+                      {
+                        "Fn::ImportValue": {"Fn::Sub": "${EFSStackName}-FileSystemId"}
+                      },
+                      " >> /etc/efs/efs.config\n"
+                    ]
+                  ]},
+                  ""
+                ]},
                 "--==BOUNDARY==\n",
                 "MIME-Version: 1.0\n",
                 "Content-Type: text/x-include-url; charset=\"us-ascii\"\n",
                 "\n",
                 "https://s3.amazonaws.com/cf-cloud-init-scripts/ecs/UserDataCloudWatchLogs\n",
-                "https://s3.amazonaws.com/cf-cloud-init-scripts/efs/UserDataEFS\n",
+                {"Fn::If": [
+                  "CreateEFSMount",
+                  "https://s3.amazonaws.com/cf-cloud-init-scripts/efs/UserDataEFS\n",
+                  ""
+                ]},
                 "--==BOUNDARY==\n"
               ]
             ]
