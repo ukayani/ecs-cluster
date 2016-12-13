@@ -111,7 +111,7 @@
         "ClusterName" : {"Ref": "AWS::StackName"}
       }
     },
-    "ALBSecurityGroup": {
+    "LoadBalancerSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": "ALB Security Group",
@@ -127,7 +127,7 @@
           "IpProtocol" : "tcp",
           "FromPort" : 32768,
           "ToPort" : 61000,
-          "SourceSecurityGroupId" : { "Ref" : "ALBSecurityGroup" }
+          "SourceSecurityGroupId" : { "Ref" : "LoadBalancerSecurityGroup" }
         } ]
       }
     },
@@ -411,12 +411,12 @@
         "Name" : {"Fn::Sub": "${AWS::StackName}-VpcId" }
       }
     },
-    "ALBSecurityGroup" : {
-      "Description": "The ID of the ALB Security group created",
-      "Value" : { "Fn::GetAtt" : [ "ALBSecurityGroup", "GroupId" ]},
+    "LoadBalancerSecurityGroup" : {
+      "Description": "The ID of the Load Balancer Security group created",
+      "Value" : { "Fn::GetAtt" : [ "LoadBalancerSecurityGroup", "GroupId" ]},
       "Export": {
         "Name": {
-          "Fn::Sub": "${AWS::StackName}-ALB-SecurityGroupID"
+          "Fn::Sub": "${AWS::StackName}-LB-SecurityGroupID"
         }
       }
     },
