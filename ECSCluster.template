@@ -81,12 +81,12 @@
       "Description": "Desired Capacity of the ECS Auto Scaling Group",
       "Default": "3"
     },
-    "EFSStackName": {
+    "EfsStackName": {
       "Type": "String",
       "Description": "Optional - The EFS stack which contains the file system needed to be mounted in the container instances",
       "Default": ""
     },
-    "EFSMountPath": {
+    "EfsMountPath": {
       "Type": "String",
       "Description": "Optional - The path at which to create the volume mount for EFS",
       "Default": "/mnt/efs"
@@ -97,7 +97,7 @@
       "Fn::Not": [
         {
           "Fn::Equals": [
-            {"Ref": "EFSStackName"},
+            {"Ref": "EfsStackName"},
             ""
           ]
         }
@@ -109,6 +109,28 @@
       "Type" : "AWS::ECS::Cluster",
       "Properties" : {
         "ClusterName" : {"Ref": "AWS::StackName"}
+      }
+    },
+    "EcsServiceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2008-10-17",
+          "Statement": [
+            {
+              "Sid": "",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Path": "/",
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole"
+        ]
       }
     },
     "LoadBalancerSecurityGroup": {
@@ -210,7 +232,7 @@
               },
               {
                 "Fn::ImportValue": {
-                  "Fn::Sub": "${EFSStackName}-FSAccessSecurityGroupID"
+                  "Fn::Sub": "${EfsStackName}-FSAccessSecurityGroupID"
                 }
               }
             ],
@@ -246,12 +268,12 @@
                       "mkdir -p /etc/efs\n",
                       "echo EFS_FILE_SYSTEM_ID=",
                       {
-                        "Fn::ImportValue": {"Fn::Sub": "${EFSStackName}-FileSystemId"}
+                        "Fn::ImportValue": {"Fn::Sub": "${EfsStackName}-FileSystemId"}
                       },
                       " >> /etc/efs/efs.config\n",
                       "echo EFS_MOUNT_POINT=",
                       {
-                        "Ref": "EFSMountPath"
+                        "Ref": "EfsMountPath"
                       },
                       " >> /etc/efs/efs.config\n"
                     ]
@@ -265,7 +287,13 @@
                 "https://s3.amazonaws.com/cf-cloud-init-scripts/ecs/UserDataCloudWatchLogs\n",
                 {"Fn::If": [
                   "CreateEFSMount",
-                  "https://s3.amazonaws.com/cf-cloud-init-scripts/efs/UserDataEFS\n",
+                  {"Fn::Join": [
+                    "",
+                    [
+                      "https://s3.amazonaws.com/cf-cloud-init-scripts/efs/UserDataEFS\n",
+                      "https://s3.amazonaws.com/cf-cloud-init-scripts/ecs/UserDataRestartDocker\n"
+                    ]
+                  ]},
                   ""
                 ]},
                 "--==BOUNDARY==\n"
@@ -416,7 +444,25 @@
       "Value" : { "Fn::GetAtt" : [ "LoadBalancerSecurityGroup", "GroupId" ]},
       "Export": {
         "Name": {
-          "Fn::Sub": "${AWS::StackName}-LB-SecurityGroupID"
+          "Fn::Sub": "${AWS::StackName}-LB-SecurityGroupId"
+        }
+      }
+    },
+    "InstanceSecurityGroup" : {
+      "Description": "The ID of the ecs container instance security group created",
+      "Value" : { "Fn::GetAtt" : [ "EcsSecurityGroup", "GroupId" ]},
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-EcsSecurityGroupId"
+        }
+      }
+    },
+    "ServiceRole": {
+      "Description": "The ARN of the ECS service role",
+      "Value": {"Fn::GetAtt": ["EcsServiceRole", "Arn"]},
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-EcsServiceRole"
         }
       }
     },
@@ -429,18 +475,18 @@
         }
       }
     },
-    "HasEFSMount": {
+    "HasEfsMount": {
       "Description": "True if this cluster uses an EFS mount",
       "Value": {"Fn::If": ["CreateEFSMount", "true", "false"]},
       "Export": {
         "Name": {
-          "Fn::Sub": "${AWS::StackName}-HasEFSMount"
+          "Fn::Sub": "${AWS::StackName}-HasEfsMount"
         }
       }
     },
-    "EFSMountPath": {
+    "EfsMountPath": {
       "Description": "The path of the EFS mount volume on the container instances",
-      "Value": {"Ref": "EFSMountPath"},
+      "Value": {"Ref": "EfsMountPath"},
       "Export": {
         "Name": {
           "Fn::Sub": "${AWS::StackName}-MountPath"
