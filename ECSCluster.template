@@ -136,8 +136,14 @@
     "LoadBalancerSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
-        "GroupDescription": "ALB Security Group",
-        "VpcId": {"Ref": "VpcId"}
+        "GroupDescription": "Security Group for load balancers which need to route traffic to container instances",
+        "VpcId": {"Ref": "VpcId"},
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {"Fn::Sub": "ECS Load Balancer SG - ${AWS::StackName}"}
+          }
+        ]
       }
     },
     "EcsSecurityGroup": {
@@ -150,7 +156,13 @@
           "FromPort" : 32768,
           "ToPort" : 61000,
           "SourceSecurityGroupId" : { "Ref" : "LoadBalancerSecurityGroup" }
-        } ]
+        } ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {"Fn::Sub": "ECS Container Instance SG - ${AWS::StackName}"}
+          }
+        ]
       }
     },
     "EcsInstanceRole": {
@@ -318,7 +330,7 @@
         "Tags": [
           {
             "Key": "Name",
-            "Value": { "Fn::Sub": "ECS Instance - ${AWS::StackName}"},
+            "Value": { "Fn::Sub": "ECS Container Instance - ${AWS::StackName}"},
             "PropagateAtLaunch": "true"
           }
         ]
