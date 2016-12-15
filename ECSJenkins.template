@@ -106,7 +106,7 @@
         "HealthCheck": {
           "HealthyThreshold": "2",
           "Interval": "30",
-          "Target": "HTTP:40000/",
+          "Target": "TCP:40000",
           "Timeout": "5",
           "UnhealthyThreshold": "5"
         },
