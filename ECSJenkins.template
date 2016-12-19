@@ -64,7 +64,7 @@
             "IpProtocol": "tcp",
             "FromPort": 50000,
             "ToPort": 50000,
-            "SourceSecurityGroupId" : { "Fn::ImportValue" : {"Fn::Sub": "${ClusterStackName}-EcsSecurityGroupId"}}
+            "CidrIp": "0.0.0.0/0"
           }
         ],
         "Tags": [
@@ -171,7 +171,7 @@
                     "ecs:RunTask"
                   ],
                   "Effect": "Allow",
-                  "Resource": {"Fn::Sub": "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/jenkins-slave:*"}
+                  "Resource": {"Fn::Sub": "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/jenkins-slave-*"}
                 },
                 {
                   "Sid": "Stmt1452746887376",
