@@ -5,7 +5,7 @@
     "EcsAmiId": {
       "Type": "String",
       "Description": "ECS EC2 AMI id",
-      "Default": "ami-eca289fb"
+      "Default": "ami-d69c74c0"
     },
     "EcsInstanceType": {
       "Type": "String",
