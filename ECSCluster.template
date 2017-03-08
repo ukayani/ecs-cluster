@@ -62,9 +62,13 @@
       "Type": "AWS::EC2::KeyPair::KeyName",
       "Description": "Name of an existing EC2 KeyPair to enable SSH access to the ECS instances"
     },
-    "SubnetIds": {
+    "InstanceSubnetIds": {
       "Type": "List<AWS::EC2::Subnet::Id>",
       "Description": "Subnet in which to create container instances"
+    },
+    "LoadBalancerSubnetIds": {
+      "Type": "List<AWS::EC2::Subnet::Id>",
+      "Description": "Subnet in which to create load balancer instances"
     },
     "AsgMinSize": {
       "Type": "Number",
@@ -138,12 +142,75 @@
       "Properties": {
         "GroupDescription": "Security Group for load balancers which need to route traffic to container instances",
         "VpcId": {"Ref": "VpcId"},
+        "SecurityGroupIngress": [
+                  {
+                    "IpProtocol": "tcp",
+                    "FromPort": 80,
+                    "ToPort": 80,
+                    "CidrIp": "0.0.0.0/0"
+                  },
+                  {
+                    "IpProtocol": "tcp",
+                    "FromPort": 443,
+                    "ToPort": 443,
+                    "CidrIp": "0.0.0.0/0"
+                  }
+        ],
         "Tags": [
           {
             "Key": "Name",
             "Value": {"Fn::Sub": "ECS Load Balancer SG - ${AWS::StackName}"}
           }
         ]
+      }
+    },
+    "LoadBalancer": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Scheme": "internet-facing",
+        "Subnets": {
+          "Ref": "LoadBalancerSubnetIds"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "LoadBalancerSecurityGroup"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "ECS ALB - ${AWS::StackName}"
+            }
+          }
+        ]
+      }
+    },
+    "Listener": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties": {
+        "DefaultActions": [
+          {
+            "Type": "forward",
+            "TargetGroupArn": {
+              "Ref": "DefaultTargetGroup"
+            }
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "LoadBalancer"
+        },
+        "Port": "80",
+        "Protocol": "HTTP"
+      }
+    },
+    "DefaultTargetGroup": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "Name": "default",
+        "VpcId": {"Ref": "VpcId"},
+        "Port": 80,
+        "Protocol": "HTTP"
       }
     },
     "EcsSecurityGroup": {
@@ -318,7 +385,7 @@
     "EcsInstanceAsg": {
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties": {
-        "VPCZoneIdentifier": {"Ref": "SubnetIds"},
+        "VPCZoneIdentifier": {"Ref": "InstanceSubnetIds"},
         "LaunchConfigurationName": {"Ref": "EcsInstanceLc"},
         "MinSize": {"Ref": "AsgMinSize"},
         "MaxSize": {
@@ -451,12 +518,21 @@
         "Name" : {"Fn::Sub": "${AWS::StackName}-VpcId" }
       }
     },
-    "LoadBalancerSecurityGroup" : {
-      "Description": "The ID of the Load Balancer Security group created",
-      "Value" : { "Fn::GetAtt" : [ "LoadBalancerSecurityGroup", "GroupId" ]},
+    "Listener" : {
+      "Description": "The ARN of the load balancer's listener",
+      "Value" : { "Ref" : "Listener"},
       "Export": {
         "Name": {
-          "Fn::Sub": "${AWS::StackName}-LB-SecurityGroupId"
+          "Fn::Sub": "${AWS::StackName}-Listener"
+        }
+      }
+    },
+    "LoadBalancerDNS": {
+      "Description": "The dns name of the app load balancer for the service",
+      "Value": { "Fn::GetAtt": ["LoadBalancer", "DNSName"]},
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-LoadBalancerDNSName"
         }
       }
     },
