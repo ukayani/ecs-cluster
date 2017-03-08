@@ -94,6 +94,7 @@ Resources:
       LoadBalancerArn: !Ref 'LoadBalancer'
       Port: '80'
       Protocol: HTTP
+
   DefaultTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -150,6 +151,9 @@ Resources:
       KeyName: !Ref 'KeyName'
       SecurityGroups:
         - !Ref 'EcsSecurityGroup'
+
+      # User Data configures the ECS agent to connect to the cluster we just created
+      # It then run a script located in S3 which configures CloudWatch Logs for the cluster
       UserData:
         "Fn::Base64": !Sub |
           Content-Type: multipart/mixed; boundary="==BOUNDARY=="
@@ -178,6 +182,9 @@ Resources:
       - Key: Name
         Value: !Sub 'ECS Container Instance - ${AWS::StackName}'
         PropagateAtLaunch: 'true'
+
+  # Auto Scaling Policies and Alarms
+
   MemScaleUpPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
@@ -257,12 +264,15 @@ Resources:
       Dimensions:
       - Name: ClusterName
         Value: !Ref 'AWS::StackName'
+
 Outputs:
+  # VpcId is required by various AWS Resources, so let the dependant stack refer to the VpcId
   VpcId:
     Description: VPC ID
     Value: !Ref 'VpcId'
     Export:
       Name: !Sub '${AWS::StackName}-VpcId'
+  # A ECS Service level stack can attach Listener Rules to this Listener to get load balancing
   Listener:
     Description: The ARN of the load balancer's listener
     Value: !Ref 'Listener'
@@ -278,6 +288,7 @@ Outputs:
     Value: !GetAtt [EcsSecurityGroup, GroupId]
     Export:
       Name: !Sub '${AWS::StackName}-EcsSecurityGroupId'
+  # A dependant stack can use this ECS Service role instead of creating its own. It is generic for all services
   ServiceRole:
     Description: The ARN of the ECS service role
     Value: !GetAtt [EcsServiceRole, Arn]
