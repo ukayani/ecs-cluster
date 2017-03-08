@@ -1,14 +1,10 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: AWS CloudFormation template to create resources for an ECS cluster.
 Parameters:
-  EcsAmiId:
-    Type: String
-    Description: ECS EC2 AMI id
-    Default: ami-d69c74c0
   EcsInstanceType:
     Type: String
     Description: ECS EC2 instance type
-    Default: t2.micro
+    Default: m4.large
     AllowedValues: [t2.nano, t2.micro, t2.small, t2.medium, t2.large, m3.medium, m3.large,
       m3.xlarge, m3.2xlarge, m4.large, m4.xlarge, m4.2xlarge, m4.4xlarge, m4.10xlarge,
       c4.large, c4.xlarge, c4.2xlarge, c4.4xlarge, c4.8xlarge, c3.large, c3.xlarge,
@@ -35,47 +31,91 @@ Parameters:
   AsgMaxSize:
     Type: Number
     Description: Maximum size of ECS Auto Scaling Group
-    Default: '5'
+    Default: '1'
   AsgDesiredSize:
     Type: Number
     Description: Desired Capacity of the ECS Auto Scaling Group
-    Default: '3'
+    Default: '1'
+
+Mappings:
+
+    # These are the latest ECS optimized AMIs as of February 2017:
+    #
+    #   amzn-ami-2016.09.f-amazon-ecs-optimized
+    #   ECS agent:    1.14.0
+    #   Docker:       1.12.6
+    #   ecs-init:     1.14.0-2
+    #
+    # You can find the latest available on this page of our documentation:
+    # http://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html
+    # (note the AMI identifier is region specific)
+
+    AWSRegionToAMI:
+        us-east-1:
+            AMI: ami-b2df2ca4
+        us-east-2:
+            AMI: ami-832b0ee6
+        us-west-1:
+            AMI: ami-dd104dbd
+        us-west-2:
+            AMI: ami-022b9262
+        eu-west-1:
+            AMI: ami-a7f2acc1
+        eu-west-2:
+            AMI: ami-3fb6bc5b
+        eu-central-1:
+            AMI: ami-ec2be583
+        ap-northeast-1:
+            AMI: ami-c393d6a4
+        ap-southeast-1:
+            AMI: ami-a88530cb
+        ap-southeast-2:
+            AMI: ami-8af8ffe9
+        ca-central-1:
+            AMI: ami-ead5688e
+
 Resources:
-  Cluster:
-    Type: AWS::ECS::Cluster
-    Properties:
-      ClusterName: !Ref 'AWS::StackName'
-  EcsServiceRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2008-10-17'
-        Statement:
-        - Sid: ''
-          Effect: Allow
-          Principal:
-            Service: ecs.amazonaws.com
-          Action: sts:AssumeRole
-      Path: /
-      ManagedPolicyArns: ['arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole']
-  LoadBalancerSecurityGroup:
+  # Security Groups
+  #   - Load Balancer Security Group
+  #   - ECS Container Instance Security Group
+
+  EcsSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Security Group for load balancers which need to route traffic
-        to container instances
+      GroupDescription: ECS Allowed Ports
       VpcId: !Ref 'VpcId'
       SecurityGroupIngress:
       - IpProtocol: tcp
-        FromPort: 80
-        ToPort: 80
-        CidrIp: 0.0.0.0/0
-      - IpProtocol: tcp
-        FromPort: 443
-        ToPort: 443
-        CidrIp: 0.0.0.0/0
+        FromPort: 32768
+        ToPort: 61000
+        SourceSecurityGroupId: !Ref 'LoadBalancerSecurityGroup'
       Tags:
       - Key: Name
-        Value: !Sub 'ECS Load Balancer SG - ${AWS::StackName}'
+        Value: !Sub 'ECS Container Instance SG - ${AWS::StackName}'
+
+  # Application Load Balancer
+  LoadBalancerSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: Security Group for load balancers which need to route traffic
+          to container instances
+        VpcId: !Ref 'VpcId'
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        Tags:
+        - Key: Name
+          Value: !Sub 'ECS Load Balancer SG - ${AWS::StackName}'
+
+  # Application Load Balancer
+  # All services in this cluster should use this ALB
+
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -95,26 +135,38 @@ Resources:
       Port: '80'
       Protocol: HTTP
 
+  # Must have a Target group under our listener's DefaultAction
+  # This target group is not used, each service should create its own target group
+
   DefaultTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      Name: default
+      Name: !Sub '${AWS::StackName}-default'
       VpcId: !Ref 'VpcId'
       Port: 80
       Protocol: HTTP
-  EcsSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
+
+  # ECS Resources
+
+  Cluster:
+    Type: AWS::ECS::Cluster
     Properties:
-      GroupDescription: ECS Allowed Ports
-      VpcId: !Ref 'VpcId'
-      SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: 32768
-        ToPort: 61000
-        SourceSecurityGroupId: !Ref 'LoadBalancerSecurityGroup'
-      Tags:
-      - Key: Name
-        Value: !Sub 'ECS Container Instance SG - ${AWS::StackName}'
+      ClusterName: !Ref 'AWS::StackName'
+
+  EcsServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2008-10-17'
+        Statement:
+        - Sid: ''
+          Effect: Allow
+          Principal:
+            Service: ecs.amazonaws.com
+          Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns: ['arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole']
+
   EcsInstanceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -136,15 +188,17 @@ Resources:
             Action: ['logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:PutLogEvents',
               'logs:DescribeLogStreams']
             Resource: ['arn:aws:logs:*:*:*']
+
   EcsInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Path: /
       Roles: [!Ref 'EcsInstanceRole']
+
   EcsInstanceLc:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
-      ImageId: !Ref 'EcsAmiId'
+      ImageId: !FindInMap [AWSRegionToAMI, !Ref "AWS::Region", AMI]
       InstanceType: !Ref 'EcsInstanceType'
       AssociatePublicIpAddress: false
       IamInstanceProfile: !Ref 'EcsInstanceProfile'
@@ -152,24 +206,121 @@ Resources:
       SecurityGroups:
         - !Ref 'EcsSecurityGroup'
 
-      # User Data configures the ECS agent to connect to the cluster we just created
-      # It then run a script located in S3 which configures CloudWatch Logs for the cluster
+      # 1. Ensure we have the latest version of cf helper scripts
+      # 2. Run all init configs in the meta data section of this resource
+      # 3. Once we are done running all our scripts and they successfully ran, signal success or failure to the ASG
       UserData:
         "Fn::Base64": !Sub |
-          Content-Type: multipart/mixed; boundary="==BOUNDARY=="
-          MIME-Version: 1.0
+            #!/bin/bash
+            yum install -y aws-cfn-bootstrap awslogs jq
+            /opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource EcsInstanceLc
+            /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource EcsInstanceAsg
+    Metadata:
+      AWS::CloudFormation::Init:
+          config:
+              commands:
+                  01_add_instance_to_cluster:
+                      command: !Sub echo ECS_CLUSTER=${Cluster} >> /etc/ecs/ecs.config
 
-          --==BOUNDARY==
-          MIME-Version: 1.0
-          Content-Type: text/x-shellscript; charset="us-ascii"
-          #!/bin/bash
-          echo ECS_CLUSTER=${Cluster} >> /etc/ecs/ecs.config
-          --==BOUNDARY==
-          MIME-Version: 1.0
-          Content-Type: text/x-include-url; charset="us-ascii"
+              files:
+                  "/etc/awslogs/awslogs.conf":
+                      mode: 000644
+                      owner: root
+                      group: root
+                      content: |
+                        [general]
+                        state_file = /var/lib/awslogs/agent-state
 
-          https://s3.amazonaws.com/cf-cloud-init-scripts/ecs/UserDataCloudWatchLogs
-          --==BOUNDARY==
+                        [/var/log/dmesg]
+                        file = /var/log/dmesg
+                        log_group_name = /var/log/dmesg
+                        log_stream_name = {cluster}/{container_instance_id}
+
+                        [/var/log/messages]
+                        file = /var/log/messages
+                        log_group_name = /var/log/messages
+                        log_stream_name = {cluster}/{container_instance_id}
+                        datetime_format = %b %d %H:%M:%S
+
+                        [/var/log/docker]
+                        file = /var/log/docker
+                        log_group_name = /var/log/docker
+                        log_stream_name = {cluster}/{container_instance_id}
+                        datetime_format = %Y-%m-%dT%H:%M:%S.%f
+
+                        [/var/log/ecs/ecs-init.log]
+                        file = /var/log/ecs/ecs-init.log.*
+                        log_group_name = /var/log/ecs/ecs-init.log
+                        log_stream_name = {cluster}/{container_instance_id}
+                        datetime_format = %Y-%m-%dT%H:%M:%SZ
+
+                        [/var/log/ecs/ecs-agent.log]
+                        file = /var/log/ecs/ecs-agent.log.*
+                        log_group_name = /var/log/ecs/ecs-agent.log
+                        log_stream_name = {cluster}/{container_instance_id}
+                        datetime_format = %Y-%m-%dT%H:%M:%SZ
+
+                        [/var/log/ecs/audit.log]
+                        file = /var/log/ecs/audit.log.*
+                        log_group_name = /var/log/ecs/audit.log
+                        log_stream_name = {cluster}/{container_instance_id}
+                        datetime_format = %Y-%m-%dT%H:%M:%SZ
+                  "/etc/init/awslogs.conf":
+                      mode: 000644
+                      owner: root
+                      group: root
+                      content: |
+                        #upstart-job
+                        description "Configure and start CloudWatch Logs agent on Amazon ECS container instance"
+                        author "Amazon Web Services"
+                        start on started ecs
+
+                        script
+                          exec 2>>/var/log/ecs/cloudwatch-logs-start.log
+                          set -x
+
+                          until curl -s http://localhost:51678/v1/metadata
+                          do
+                              sleep 1
+                          done
+
+                          # Grab the cluster and container instance ARN from instance metadata
+                          cluster=$(curl -s http://localhost:51678/v1/metadata | jq -r '. | .Cluster')
+                          container_instance_id=$(curl -s http://localhost:51678/v1/metadata | jq -r '. | .ContainerInstanceArn' | awk -F/ '{print $2}' )
+
+                          region=$(curl 169.254.169.254/latest/meta-data/placement/availability-zone | sed s'/.$//')
+                          # Replace region with actual region
+                          sed -i -e "s/region = us-east-1/region = $region/g" /etc/awslogs/awscli.conf
+                          # Replace the cluster name and container instance ID placeholders with the actual values
+                          sed -i -e "s/{cluster}/$cluster/g" /etc/awslogs/awslogs.conf
+                          sed -i -e "s/{container_instance_id}/$container_instance_id/g" /etc/awslogs/awslogs.conf
+
+                          service awslogs start
+                          chkconfig awslogs on
+                        end script
+                  "/etc/cfn/cfn-hup.conf":
+                      mode: 000400
+                      owner: root
+                      group: root
+                      content: !Sub |
+                          [main]
+                          stack=${AWS::StackId}
+                          region=${AWS::Region}
+
+                  "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
+                      content: !Sub |
+                          [cfn-auto-reloader-hook]
+                          triggers=post.update
+                          path=Resources.EcsInstanceLc.Metadata.AWS::CloudFormation::Init
+                          action=/opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource EcsInstanceLc
+              services:
+                  sysvinit:
+                      cfn-hup:
+                          enabled: true
+                          ensureRunning: true
+                          files:
+                              - /etc/cfn/cfn-hup.conf
+                              - /etc/cfn/hooks.d/cfn-auto-reloader.conf
   EcsInstanceAsg:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
@@ -182,6 +333,18 @@ Resources:
       - Key: Name
         Value: !Sub 'ECS Container Instance - ${AWS::StackName}'
         PropagateAtLaunch: 'true'
+    CreationPolicy:
+        # Ensure we wait for a signal from each instance to know when its done bootstrapping
+        ResourceSignal:
+            Timeout: PT15M
+    UpdatePolicy:
+        # Any changes to the ASG should update instances in a rolling fashion rather than tearing them all down at
+        # once
+        AutoScalingRollingUpdate:
+            MinInstancesInService: 1
+            MaxBatchSize: 1
+            PauseTime: PT15M
+            WaitOnResourceSignals: true
 
   # Auto Scaling Policies and Alarms
 
@@ -202,6 +365,7 @@ Resources:
         ScalingAdjustment: '10'
       - MetricIntervalLowerBound: '20'
         ScalingAdjustment: '30'
+
   MemScaleDownPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
@@ -219,6 +383,7 @@ Resources:
         ScalingAdjustment: '-10'
       - MetricIntervalUpperBound: '-20'
         ScalingAdjustment: '-30'
+
   MemResAlarmHigh:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -234,6 +399,7 @@ Resources:
       Dimensions:
       - Name: ClusterName
         Value: !Ref 'AWS::StackName'
+
   MemUtilAlarmHigh:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -249,6 +415,7 @@ Resources:
       Dimensions:
       - Name: ClusterName
         Value: !Ref 'AWS::StackName'
+
   MemResAlarmLow:
     Type: AWS::CloudWatch::Alarm
     Properties:
