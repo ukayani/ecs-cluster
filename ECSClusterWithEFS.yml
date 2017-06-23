@@ -462,7 +462,6 @@ Outputs:
     Value: !Ref 'VpcId'
     Export:
       Name: !Sub '${AWS::StackName}-VpcId'
-
   LoadBalancerSecurityGroup:
     Description: The ID of the security group which LoadBalancers must be a part of to communicate with ECS Instances
     Value: !GetAtt [LoadBalancerSecurityGroup, GroupId]
@@ -479,3 +478,8 @@ Outputs:
     Value: !Ref 'Cluster'
     Export:
       Name: !Sub '${AWS::StackName}-ClusterName'
+  MountPath:
+      Description: The path at which the EFS volume is mounted
+      Value: !Ref 'EfsMountPath'
+      Export:
+        Name: !Sub '${AWS::StackName}-MountPath'
