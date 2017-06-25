@@ -355,7 +355,7 @@ Resources:
                   chown -R root:efs $DIR_TGT
                   chmod -R 775 $DIR_TGT
                   
-                  echo $EFS_GID > /etc/docker-permission/efs
+                  echo $EFS_GID > /etc/docker-permission/volume
                   
                 - FileSystemId: !ImportValue
                     'Fn::Sub': '${EfsStackName}-FileSystemId'
