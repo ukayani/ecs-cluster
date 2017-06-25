@@ -305,6 +305,12 @@ Resources:
               owner: root
               group: root
               content: !Sub ECS_CLUSTER=${Cluster}
+          commands:
+            01_docker_group:
+              command: !Sub |
+                #!/bin/bash
+                mkdir /etc/docker-permission/
+                sed -nr "s/^docker:x:([0-9]+):.*/\1/p" /etc/group > /etc/docker-permission/gid
         install_efs:
           commands:
             01_install_efs:
@@ -338,6 +344,12 @@ Resources:
                   
                   mount -a -t nfs4
                   echo "Mounted EFS: $EFS_FILE_SYSTEM_ID" >> $LOG_FILE
+                  
+                  # Create the EFS group and assign it as the group for the entire EFS volume
+                  groupadd -g 555 efs
+                  chown -R root:efs $DIR_TGT
+                  chmod -R 775 $DIR_TGT
+                  
                 - FileSystemId: !ImportValue
                     'Fn::Sub': '${EfsStackName}-FileSystemId'
                   MountPath: !Ref 'EfsMountPath'
