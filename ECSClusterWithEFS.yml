@@ -309,6 +309,10 @@ Resources:
             01_docker_group:
               command: !Sub |
                 #!/bin/bash
+                
+                # create a file with the gid of the docker group
+                # we will mount this into our containers that need to do docker outside of docker since there isn't a
+                # good way to pass it as an ENV via ECS task defs
                 mkdir /etc/docker-permission/
                 sed -nr "s/^docker:x:([0-9]+):.*/\1/p" /etc/group > /etc/docker-permission/gid
         install_efs:
