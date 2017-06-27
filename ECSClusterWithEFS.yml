@@ -487,6 +487,11 @@ Outputs:
     Value: !GetAtt [LoadBalancerSecurityGroup, GroupId]
     Export:
       Name: !Sub '${AWS::StackName}-EcsLoadBalancerSecurityGroupId'
+  ECSSecurityGroup:
+    Description: The ID of the security group which ECS container instances belong to
+    Value: !GetAtt [EcsSecurityGroup, GroupId]
+    Export:
+      Name: !Sub '${AWS::StackName}-EcsSecurityGroupId'
   # A dependant stack can use this ECS Service role instead of creating its own. It is generic for all services
   ServiceRole:
     Description: The ARN of the ECS service role
