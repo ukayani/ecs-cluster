@@ -306,15 +306,13 @@ Resources:
               group: root
               content: !Sub ECS_CLUSTER=${Cluster}
           commands:
-            01_docker_group:
+            01_docker_user:
               command: !Sub |
                 #!/bin/bash
                 
-                # create a file with the gid of the docker group
-                # we will mount this into our containers that need to do docker outside of docker since there isn't a
-                # good way to pass it as an ENV via ECS task defs
-                mkdir /etc/docker-permission/
-                sed -nr "s/^docker:x:([0-9]+):.*/\1/p" /etc/group > /etc/docker-permission/docker
+                # Create a docker user that has access to specific things on the host instead of running as root
+                DOCKER_USER_ID=5001
+                useradd -u $DOCKER_USER_ID -o -c "" docker-user
         install_efs:
           commands:
             01_install_efs:
@@ -352,11 +350,14 @@ Resources:
                   # Create the EFS group and assign it as the group for the entire EFS volume
                   EFS_GID=555
                   groupadd -g $EFS_GID efs
-                  chown -R root:efs $DIR_TGT
-                  chmod -R 775 $DIR_TGT
+                  chgrp -R efs $DIR_TGT
                   
-                  echo $EFS_GID > /etc/docker-permission/volume
-                  
+                  if [ ! -d "$DIR_TGT/docker-user" ]; then
+                    echo "Creating docker-user dir on EFS" >> $LOG_FILE
+                    mkdir "$DIR_TGT/docker-user"
+                    chown -R docker-user:efs "$DIR_TGT/docker-user"
+                  fi
+                                    
                 - FileSystemId: !ImportValue
                     'Fn::Sub': '${EfsStackName}-FileSystemId'
                   MountPath: !Ref 'EfsMountPath'
