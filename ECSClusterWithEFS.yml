@@ -41,7 +41,10 @@ Parameters:
     Type: String
     Description: The path at which to create the volume mount for EFS
     Default: /mnt/efs  
-
+  DockerGCExcludes:
+    Type: String
+    Description: A comma delimited list of image name patterns to exclude when garbage collecting images
+    Default: ''
 Mappings:
 
     # These are the latest ECS optimized AMIs as of June 2017:
@@ -197,6 +200,7 @@ Resources:
           - install_logging
           - configure_ecs
           - install_efs
+          - install_docker_gc
         install_cfn:
           files:
             /etc/cfn/cfn-hup.conf:
@@ -224,7 +228,7 @@ Resources:
         install_logging:
           files:
             "/etc/awslogs/awslogs.conf":
-              mode: 000644
+              mode: '000644'
               owner: root
               group: root
               content: |
@@ -266,7 +270,7 @@ Resources:
                 log_stream_name = {cluster}/{container_instance_id}
                 datetime_format = %Y-%m-%dT%H:%M:%SZ
             "/etc/init/awslogs.conf":
-              mode: 000644
+              mode: '000644'
               owner: root
               group: root
               content: |
@@ -301,7 +305,7 @@ Resources:
         configure_ecs:
           files:
             "/etc/ecs/ecs.config":
-              mode: 000644
+              mode: '000644'
               owner: root
               group: root
               content: !Sub ECS_CLUSTER=${Cluster}
@@ -363,7 +367,67 @@ Resources:
                   MountPath: !Ref 'EfsMountPath'
             02_restart_docker:
               command: service docker restart
-                                
+        install_docker_gc:
+          packages:
+            yum:
+              unzip: []
+              rpm-build: []
+          commands:
+            01_install_docker_gc:
+              command: !Sub
+                - |
+                  #!/bin/bash
+                  
+                  cd /opt
+                  ARCHIVE=docker-gc.zip
+                  
+                  if ! curl -fL -o "$ARCHIVE" "https://github.com/spotify/docker-gc/archive/master.zip"; then
+                    echo >&2 "error: failed to download docker-gc";
+                    exit 1;
+                  fi;
+                  
+                  TARGET=docker-gc
+                  
+                  unzip "$ARCHIVE"
+                  
+                  DOCKER_GC_FOLDER=docker-gc-master
+                  
+                  if [ ! -d "$DOCKER_GC_FOLDER/rpm" ]; then
+                    echo >&2 "error: failed to unzip docker-gc";
+                    exit 1;
+                  fi
+                  
+                  cd $DOCKER_GC_FOLDER/rpm
+                  make
+                  
+                  cd RPMS/noarch
+                  PACKAGE=$(find . -name '*.rpm' | head -n 1)
+                  yum install -y $PACKAGE
+                  
+                  rm -rf "$DOCKER_GC_FOLDER"
+                  rm "$ARCHIVE"
+                  
+                  # Setting up excludes
+                  EXCLUDE_FILE=/etc/docker-gc-exclude
+                  DOCKER_EXCLUDES="${Excludes}"
+                  
+                  touch $EXCLUDE_FILE
+                  chmod 644 $EXCLUDE_FILE
+                  
+                  echo "amazon/amazon-ecs-agent:*" >> $EXCLUDE_FILE
+                  
+                  echo $DOCKER_EXCLUDES | sed -n 1'p' | tr ',' '\n' | while read word; do
+                      echo $word >> $EXCLUDE_FILE
+                  done
+                - Excludes: !Ref 'DockerGCExcludes'
+          files:
+            "/etc/cron.hourly/docker-gc":
+              mode: '000755'
+              owner: root
+              group: root
+              content: |
+                #!/bin/bash
+                /usr/sbin/docker-gc
   EcsInstanceAsg:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
