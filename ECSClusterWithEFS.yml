@@ -436,6 +436,8 @@ Resources:
       MinSize: !Ref 'AsgMinSize'
       MaxSize: !Ref 'AsgMaxSize'
       DesiredCapacity: !Ref 'AsgDesiredSize'
+      HealthCheckType: ELB
+      
       Tags:
       - Key: Name
         Value: !Sub 'ECS Container Instance - ${AWS::StackName}'
