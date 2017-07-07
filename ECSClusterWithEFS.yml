@@ -216,7 +216,7 @@ Resources:
                 [cfn-auto-reloader-hook]
                 triggers=post.update
                 path=Resources.EcsInstanceLc.Metadata.AWS::CloudFormation::Init
-                action=/usr/local/bin/cfn-init -v --stack ${AWS::StackName} --resource EcsInstanceLc --configsets full_install
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EcsInstanceLc --configsets full_install
           services:
             sysvinit:
               cfn-hup:
@@ -435,9 +435,7 @@ Resources:
       LaunchConfigurationName: !Ref 'EcsInstanceLc'
       MinSize: !Ref 'AsgMinSize'
       MaxSize: !Ref 'AsgMaxSize'
-      DesiredCapacity: !Ref 'AsgDesiredSize'
-      HealthCheckType: ELB
-      
+      DesiredCapacity: !Ref 'AsgDesiredSize'      
       Tags:
       - Key: Name
         Value: !Sub 'ECS Container Instance - ${AWS::StackName}'
