@@ -45,6 +45,10 @@ Parameters:
     Type: String
     Description: A comma delimited list of image name patterns to exclude when garbage collecting images
     Default: ''
+  CloudFormationLogGroup:
+    Type: String
+    Description: The name of a CloudWatch log group to send CloudFormation related logs to
+    Default: 'CloudFormation'
 Mappings:
 
     # These are the latest ECS optimized AMIs as of June 2017:
@@ -217,6 +221,7 @@ Resources:
                 triggers=post.update
                 path=Resources.EcsInstanceLc.Metadata.AWS::CloudFormation::Init
                 action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EcsInstanceLc --configsets full_install
+                runas=root
           services:
             sysvinit:
               cfn-hup:
@@ -231,7 +236,7 @@ Resources:
               mode: '000644'
               owner: root
               group: root
-              content: |
+              content: !Sub |
                 [general]
                 state_file = /var/lib/awslogs/agent-state
 
@@ -269,6 +274,36 @@ Resources:
                 log_group_name = /var/log/ecs/audit.log
                 log_stream_name = {cluster}/{container_instance_id}
                 datetime_format = %Y-%m-%dT%H:%M:%SZ
+                
+                [/var/log/cloud-init.log]
+                file = /var/log/cloud-init.log
+                log_group_name = ${CloudFormationLogGroup}
+                log_stream_name = {instance_id}/cloud-init.log
+                datetime_format = 
+                
+                [/var/log/cloud-init-output.log]
+                file = /var/log/cloud-init-output.log
+                log_group_name = ${CloudFormationLogGroup}
+                log_stream_name = {instance_id}/cloud-init-output.log
+                datetime_format = 
+                
+                [/var/log/cfn-init.log]
+                file = /var/log/cfn-init.log
+                log_group_name = ${CloudFormationLogGroup}
+                log_stream_name = {instance_id}/cfn-init.log
+                datetime_format = 
+                
+                [/var/log/cfn-hup.log]
+                file = /var/log/cfn-hup.log
+                log_group_name = ${CloudFormationLogGroup}
+                log_stream_name = {instance_id}/cfn-hup.log
+                datetime_format = 
+                
+                [/var/log/cfn-wire.log]
+                file = /var/log/cfn-wire.log
+                log_group_name = ${CloudFormationLogGroup}
+                log_stream_name = {instance_id}/cfn-wire.log
+                datetime_format =
             "/etc/init/awslogs.conf":
               mode: '000644'
               owner: root
@@ -404,6 +439,7 @@ Resources:
                   PACKAGE=$(find . -name '*.rpm' | head -n 1)
                   yum install -y $PACKAGE
                   
+                  cd /opt
                   rm -rf "$DOCKER_GC_FOLDER"
                   rm "$ARCHIVE"
                   
