@@ -49,6 +49,14 @@ Parameters:
     Type: String
     Description: The name of a CloudWatch log group to send CloudFormation related logs to
     Default: 'CloudFormation'
+  MemoryUpperThreshold:
+    Type: Number
+    Description: The threshold for memory/util/res to trigger a scale up action
+    Default: '60'
+  MemoryLowerThreshold:
+    Type: Number
+    Description: The threshold for memory/util/res to trigger a scale down action
+    Default: '30'
 Mappings:
 
     # These are the latest ECS optimized AMIs as of June 2017:
@@ -537,7 +545,7 @@ Resources:
       Statistic: Average
       Period: '60'
       EvaluationPeriods: '3'
-      Threshold: '60'
+      Threshold: !Ref 'MemoryUpperThreshold'
       ComparisonOperator: GreaterThanThreshold
       Dimensions:
       - Name: ClusterName
@@ -553,7 +561,7 @@ Resources:
       Statistic: Average
       Period: '60'
       EvaluationPeriods: '2'
-      Threshold: '60'
+      Threshold: !Ref 'MemoryLowerThreshold'
       ComparisonOperator: GreaterThanThreshold
       Dimensions:
       - Name: ClusterName
