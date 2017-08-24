@@ -394,10 +394,9 @@ Resources:
                   mount -a -t nfs4
                   echo "Mounted EFS: $EFS_FILE_SYSTEM_ID" >> $LOG_FILE
                   
-                  # Create the EFS group and assign it as the group for the entire EFS volume
+                  # Create the EFS group
                   EFS_GID=555
                   groupadd -g $EFS_GID efs
-                  chgrp -R efs $DIR_TGT
                   
                   if [ ! -d "$DIR_TGT/docker-user" ]; then
                     echo "Creating docker-user dir on EFS" >> $LOG_FILE
@@ -561,7 +560,7 @@ Resources:
       Statistic: Average
       Period: '60'
       EvaluationPeriods: '2'
-      Threshold: !Ref 'MemoryLowerThreshold'
+      Threshold: !Ref 'MemoryUpperThreshold'
       ComparisonOperator: GreaterThanThreshold
       Dimensions:
       - Name: ClusterName
@@ -577,7 +576,7 @@ Resources:
       Statistic: Average
       Period: '60'
       EvaluationPeriods: '10'
-      Threshold: '30'
+      Threshold: !Ref 'MemoryLowerThreshold'
       ComparisonOperator: LessThanThreshold
       Dimensions:
       - Name: ClusterName
