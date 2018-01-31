@@ -439,7 +439,7 @@ Resources:
                   touch $EXCLUDE_FILE
                   chmod 644 $EXCLUDE_FILE
                   
-                  echo "amazon/amazon-ecs-agent:*" >> $EXCLUDE_FILE
+                  echo "amazon/amazon-ecs-agent:.*" >> $EXCLUDE_FILE
                   
                   echo $DOCKER_EXCLUDES | sed -n 1'p' | tr ',' '\n' | while read word; do
                       echo $word >> $EXCLUDE_FILE
@@ -452,7 +452,7 @@ Resources:
               group: root
               content: |
                 #!/bin/bash
-                /usr/sbin/docker-gc
+                FORCE_IMAGE_REMOVAL=1 FORCE_CONTAINER_REMOVAL=1 /usr/sbin/docker-gc
   EcsInstanceAsg:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
