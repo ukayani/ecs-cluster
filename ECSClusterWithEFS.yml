@@ -57,6 +57,11 @@ Parameters:
     Type: Number
     Description: The threshold for memory/util/res to trigger a scale down action
     Default: '30'
+  HardDriveSize:
+    Description: The root volume size in GB for Kong nodes (volume type=gp2)
+    Type: Number
+    Default: '40'
+    MinValue: '20'    
 Mappings:
 
     # These are the latest ECS optimized AMIs as of JAN 2018:
@@ -172,6 +177,12 @@ Resources:
       AssociatePublicIpAddress: false
       IamInstanceProfile: !Ref 'EcsInstanceProfile'
       KeyName: !Ref 'KeyName'
+      BlockDeviceMappings:
+      -
+        DeviceName: '/dev/xvda'
+        Ebs:
+          VolumeSize: !Ref 'HardDriveSize'
+          VolumeType: gp2      
       SecurityGroups:
         - !Ref 'EcsSecurityGroup'
         - !ImportValue
