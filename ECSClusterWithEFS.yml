@@ -179,7 +179,7 @@ Resources:
       KeyName: !Ref 'KeyName'
       BlockDeviceMappings:
       -
-        DeviceName: '/dev/xvda'
+        DeviceName: '/dev/xvdcy'
         Ebs:
           VolumeSize: !Ref 'HardDriveSize'
           VolumeType: gp2      
@@ -206,6 +206,7 @@ Resources:
           - configure_ecs
           - install_efs
           - install_docker_gc
+          - docker_volume
         install_cfn:
           files:
             /etc/cfn/cfn-hup.conf:
@@ -464,6 +465,13 @@ Resources:
               content: |
                 #!/bin/bash
                 FORCE_IMAGE_REMOVAL=1 FORCE_CONTAINER_REMOVAL=1 /usr/sbin/docker-gc
+        docker_volume:
+          commands:
+            01_extend_docker_volume:
+              command: !Sub |
+                #!/bin/bash
+                vgextend docker /dev/xvdcy
+                lvextend -L+${HardDriveSize}G /dev/docker/docker-pool  
   EcsInstanceAsg:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
