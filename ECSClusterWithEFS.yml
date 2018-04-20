@@ -7,10 +7,11 @@ Parameters:
     Default: m4.large
     AllowedValues: [t2.nano, t2.micro, t2.small, t2.medium, t2.large, m3.medium, m3.large,
       m3.xlarge, m3.2xlarge, m4.large, m4.xlarge, m4.2xlarge, m4.4xlarge, m4.10xlarge,
-      c4.large, c4.xlarge, c4.2xlarge, c4.4xlarge, c4.8xlarge, c3.large, c3.xlarge,
-      c3.2xlarge, c3.4xlarge, c3.8xlarge, r3.large, r3.xlarge, r3.2xlarge, r3.4xlarge,
-      r3.8xlarge, i2.xlarge, i2.2xlarge, i2.4xlarge, i2.8xlarge, g2.2xlarge, g2.8xlarge,
-      d2.xlarge, d2.2xlarge, d2.4xlarge, d2.8xlarge]
+      m5.large, m5.xlarge, m5.2xlarge, m5.4xlarge, m5.12xlarge, m5.24xlarge, c4.large,
+      c4.xlarge, c4.2xlarge, c4.4xlarge, c4.8xlarge, c3.large, c3.xlarge, c3.2xlarge,
+      c3.4xlarge, c3.8xlarge, r3.large, r3.xlarge, r3.2xlarge, r3.4xlarge, r3.8xlarge,
+      i2.xlarge, i2.2xlarge, i2.4xlarge, i2.8xlarge, g2.2xlarge, g2.8xlarge, d2.xlarge,
+      d2.2xlarge, d2.4xlarge, d2.8xlarge]
     ConstraintDescription: must be a valid EC2 instance type.
   VpcId:
     Type: AWS::EC2::VPC::Id
@@ -58,18 +59,18 @@ Parameters:
     Description: The threshold for memory/util/res to trigger a scale down action
     Default: '30'
   HardDriveSize:
-    Description: The root volume size in GB for Kong nodes (volume type=gp2)
+    Description: The root volume size in GB for ECS nodes (volume type=gp2)
     Type: Number
     Default: '40'
     MinValue: '20'    
 Mappings:
 
-    # These are the latest ECS optimized AMIs as of JAN 2018:
+    # These are the latest ECS optimized AMIs as of April 2018:
     #
-    #   (amzn-ami-2017.09.e-amazon-ecs-optimized)
-    #   ECS agent:    1.16.1
-    #   Docker:       17.06.2-ce
-    #   ecs-init:     1.16.1-1
+    #   (amzn-ami-2017.09.l-amazon-ecs-optimized)
+    #   ECS agent:    1.17.3
+    #   Docker:       17.12.1-ce
+    #   ecs-init:     1.17.3-1
     #
     # You can find the latest available on this page of our documentation:
     # http://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html
@@ -77,9 +78,15 @@ Mappings:
 
     AWSRegionToAMI:
       us-east-1:
-        AMI: ami-13401669
+        AMI: ami-aff65ad2
+      us-east-2:
+        AMI: ami-64300001
+      us-west-1:
+        AMI: ami-69677709
+      us-west-2:
+        AMI: ami-40ddb938
       ca-central-1:
-        AMI: ami-e8cb4e8c
+        AMI: ami-897ff9ed
 
 Resources:
   # Security Groups
